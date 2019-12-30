@@ -16,6 +16,8 @@ type Logger struct {
 	// lumberjackLogger is used to rotate log file, lumberjackLogger is not set by default,
 	// this will be set when SetOutput function is being called
 	lumberjackLogger *lumberjack.Logger
+
+	filename string
 }
 
 // Format used to set up log file format
@@ -31,12 +33,20 @@ type Format struct {
 	Loglevel Level
 }
 
+const (
+	defaultMaxSize    = 50
+	defaultFilename   = "./logv.log"
+	defaultMaxBackups = 10
+	defaultMaxAge     = 10
+)
+
 // Level is log level type
 type Level uint32
 
 // logging levels
 const (
-	PanicLevel Level = iota
+	UnknownLevel Level = iota
+	PanicLevel
 	FatalLevel
 	ErrorLevel
 	WarnLevel
@@ -46,6 +56,7 @@ const (
 )
 
 // NewDefault create new logger that output to stdout.
+// No rotate. Default logrus logger.
 func NewDefault() *Logger {
 	return &Logger{
 		Logger: logrus.New(),
@@ -61,16 +72,16 @@ func NewDefault() *Logger {
 //			Loglevel: PanicLevel
 func New(f *Format) *Logger {
 	if len(f.Filename) == 0 {
-		f.Filename = "./logv.log"
+		f.Filename = defaultFilename
 	}
 	if f.MaxSize <= 0 {
-		f.MaxSize = 50
+		f.MaxSize = defaultMaxSize
 	}
 	if f.MaxBackups <= 0 {
-		f.MaxBackups = 3
+		f.MaxBackups = defaultMaxBackups
 	}
 	if f.MaxAge <= 0 {
-		f.MaxAge = 10
+		f.MaxAge = defaultMaxAge
 	}
 
 	lumberjackLogger := &lumberjack.Logger{
@@ -91,10 +102,34 @@ func New(f *Format) *Logger {
 		ForceColors:     true,
 	})
 	// Only log the warning severity or above.
-	l.SetLevel(logrus.Level(f.Loglevel))
+	l.SetLevel(logrus.Level(transLevelToLogrusLevel(f.Loglevel)))
 
 	return &Logger{
 		Logger:           l,
 		lumberjackLogger: lumberjackLogger,
+		filename:         f.Filename,
 	}
+}
+
+func transLevelToLogrusLevel(l Level) logrus.Level {
+	var logrusLevel logrus.Level
+	switch l {
+	case PanicLevel:
+		logrusLevel = logrus.PanicLevel
+	case FatalLevel:
+		logrusLevel = logrus.FatalLevel
+	case ErrorLevel:
+		logrusLevel = logrus.ErrorLevel
+	case WarnLevel:
+		logrusLevel = logrus.WarnLevel
+	case InfoLevel:
+		logrusLevel = logrus.InfoLevel
+	case DebugLevel:
+		logrusLevel = logrus.DebugLevel
+	case TraceLevel:
+		logrusLevel = logrus.TraceLevel
+	default:
+		logrusLevel = logrus.InfoLevel
+	}
+	return logrusLevel
 }

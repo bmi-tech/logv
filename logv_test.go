@@ -11,7 +11,7 @@ func TestNew(t *testing.T) {
 		Loglevel:   DebugLevel,
 	}
 	logger := New(f)
-	for i := 0; i < 1000000; i++ {
+	for i := 0; i < 100000; i++ {
 		logger.Warnln(i)
 		logger.Traceln(i)
 		logger.Debugln(i)
